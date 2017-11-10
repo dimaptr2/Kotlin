@@ -1,0 +1,85 @@
+group 'ru.velkomfood.edi.services'
+version '1.1'
+
+buildscript {
+
+    ext {
+        kotlin_version = '1.1.51'
+        netty_version = '4.1.16.Final'
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+
+}
+
+apply plugin: 'java'
+apply plugin: 'kotlin'
+apply plugin: 'idea'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    compile fileTree(dir: '/usr/sap/JCo', includes: ['sapidoc3.jar', 'sapjco3.jar'])
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version")
+    compile("io.netty:netty-all:${netty_version}")
+
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+// Build an assembly
+jar {
+
+    baseName = project.name
+    version = project.version
+
+    manifest {
+        attributes(
+                'Main-Class': project.group + '.LauncherKt',
+                'Class-Path': configurations.runtime.collect() { 'klib/' + it.name }.join(' ')
+        )
+    }
+
+}
+
+// Copy dependencies
+task copyDependencies(type: Copy) {
+    from configurations.runtime
+    into 'build/libs/klib'
+    from fileTree(dir: '/usr/sap/JCo', include: 'libsapjco3.so')
+    into 'build/libs/klib'
+}
+
+// Copy additional files
+task copyPropertiesFile(type: Copy) {
+    from fileTree(dir: './', include: 'connection.properties')
+    into 'build/libs'
+}
+
+// Create or remove a final distribution
+
+task createDistribution(type: Zip) {
+    from 'build/libs'
+    includes ['*/*']
+    archiveName 'edico.zip'
+    destinationDir(file('./dist'))
+}
+
+task removeDistribution(type: Delete) {
+    delete 'dist'
+}
